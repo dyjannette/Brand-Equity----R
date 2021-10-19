@@ -14,7 +14,10 @@ difícil de medir debido a su naturaleza intangible y compleja. Ariel Research i
 marca, es decir, convertir un concepto intangible en una medida tangible, creando una medida multidimensional con
 cinco dimensiones principales: familiaridad, popularidad, relevancia, lealtad y singularidad.
 
-## 🎯Objetivo del caso
+## 🎯Algoritmo usado:
+🚩 ANÁLISIS DE CORRESPONDENCIA
+
+## 🎯Objetivo del caso:
 🚩 Determinar la forma de medir el valor de una marca.
 
 ## 🎯Objetivos Específicos:
