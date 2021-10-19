@@ -1,0 +1,482 @@
+---
+title: "Caso Brand Equity"
+subtitle: "Data Analysis with R"
+author: "Elaborado por *Dyjannette Alva Quiroz*"
+output: oilabs::lab_report
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library("dplyr")
+library("oilabs")
+library("tidyverse")
+library("RColorBrewer") 
+library("gridExtra")  
+require("knitr")
+library("xlsx")
+library("funModeling")
+library("nortest")
+require(car)
+library(ggplot2)
+library("gplots")
+library(FactoMineR)
+library(ade4)
+library(ExPosition)
+library(factoextra)
+library(Rcpp)
+library(InPosition)
+library(ca)
+
+source("http://pcwww.liv.ac.uk/~william/R/crosstab.r")
+
+```
+* * *
+
+## **1. Introducción**
+
+El presente caso se analiza desde la perspectiva de la investigación de mercado realizada por Ariel Research. La investigación ha recopilado un gran conjunto de datos sobre el valor de la marca para los sectores de Comida Rápida y Viajes. El valor de marca se identifica como el valor agregado a una marca debido a su nombre. Un alto valor de marca ayuda a las empresas a mantener su ventaja competitiva.
+
+Tipicamente el valor de la marca puede ser dividida en dos áreas: Valor de marca financiera y valor de marca de mercadeo.El valor de la marca financiera se puede describir como "el valor asignado a una marca en el balance, que representa el valor que se cree que reside en el nombre de la marca". El valor de marca de marketing, que es el área de valor de marca explorado en el conjunto de datos de Ariel, puede describirse como "el valor agregado a una marca debido a su nombre respaldado por la lealtad del consumidor, la voluntad de comprar a un precio superior, la resistencia a los esfuerzos del marketing de la competencia, etc. "
+
+El valor de marca es un concepto difícil de medir debido a su naturaleza intangible y compleja. Ariel Research intentó cuantificar el valor de la marca, es decir, convertir un concepto intangible en una medida tangible, creando una medida multidimensional con cinco dimensiones principales: familiaridad, popularidad, relevancia, lealtad y singularidad.
+
+
+* * *
+
+## **2. Objetivo del caso**
+
+Determinar la forma de medir el valor de una marca.
+
+Objetivos Específicos: 
+
+ - Determinar el impacto de las variables: lealtad, relevancia, familiaridad, singularidad y popularidad; en el valor de la marca.
+ - Establecer las diferencias significativas según las categorías: edad, región, ingresos y género.
+
+* * *
+
+## **3. Análisis**
+
+
+
+    * 1. Fast food
+
+```{r datos_iniciales, include=TRUE}
+Base1 = read.xlsx("FAST FOOD-1.xlsx", sheetName = "Sheet1")
+glimpse(Base1)
+tibble(Base1)
+df_status(Base1)
+
+```
+
+
+
+    * 1. Actualizando los tipos de variables
+
+
+```{r, message=FALSE}
+
+Base1$brand<-as.factor(Base1$brand)
+levels(Base1$brand)<-c("A&W","Burger King","Harver's","Mc Donalds","Wendy's")
+attach(Base1)
+
+table(brand)
+
+
+Base1$gender<-as.factor(Base1$gender)
+levels(Base1$gender)<-c("Femenino","Masculino")
+attach(Base1)
+table(gender)
+
+Base1$children<-as.factor(Base1$children)
+levels(Base1$children)<-c("Si","No")
+attach(Base1)
+table(children)
+
+Base1$income<-as.factor(Base1$income)
+levels(Base1$income)<-c("1. <$30k","2. [$30k-$50k>","3. [$50k-$75k>","4. >= $75k")
+attach(Base1)
+table(income)
+
+Base1$region<-as.factor(Base1$region)
+levels(Base1$region)<-c("1. Maritimes","2. Quebec","3. Ontario","4. West")
+attach(Base1)
+table(region)
+
+Base1$famil<-as.factor(Base1$famil)
+Base1$uniqu<-as.factor(Base1$uniqu)
+Base1$relev<-as.factor(Base1$relev)
+Base1$loyal<-as.factor(Base1$loyal)
+Base1$popul<-as.factor(Base1$popul)
+Base1$popul<-as.factor(Base1$popul)
+
+Base1$familbin<-as.factor(Base1$familbin)
+levels(Base1$familbin)<-c("No Leal","Leal")
+
+Base1$uniqubin<-as.factor(Base1$uniqubin)
+levels(Base1$uniqubin)<-c("No Leal","Leal")
+
+Base1$relevbin<-as.factor(Base1$relevbin)
+levels(Base1$relevbin)<-c("No Leal","Leal")
+
+Base1$loyalbin<-as.factor(Base1$loyalbin)
+levels(Base1$loyalbin)<-c("No Leal","Leal")
+
+Base1$populbin<-as.factor(Base1$populbin)
+levels(Base1$populbin)<-c("No Leal","Leal")
+
+df_status(Base1)
+summary(Base1)
+
+
+```
+
+* * *
+
+## **3.1 Análisis de Correspondencias**
+
+#Visualizando la tabla de contingencia
+
+1. Convertir la base como una tabla
+
+```{r include=TRUE, fig.width=14, fig.height=8}
+
+dtGrupo1<-table(Base1$famil, Base1$brand) #aquí empezamos
+dtGrupo1
+```
+
+2. Gráfico
+```{r include=TRUE, fig.width=14, fig.height=8}
+
+balloonplot(dtGrupo1, main ="Lealtad por marcas", xlab ="", ylab="",
+            label = FALSE, show.margins = FALSE)
+
+```
+***
+
+### **2. Tabla de Perfiles **
+
+
+El análisis de correspondencia comienza con un estudio de los perfiles de filas y columnas. Su objetivo es averiguar qué marcas tienen bajas o alta lealtad en el mercado de restaurantes de comida rápida.
+
+* Creando los perfiles fila
+
+```{r, message=FALSE}
+dtGrupo1.row = dtGrupo1/rowSums(dtGrupo1)
+
+mass.row = colMeans(dtGrupo1.row)
+
+
+Perfil_fila=rbind(dtGrupo1.row,mass.row)
+Perfil_fila
+```
+
+El perfil de fila muestra que el valor de masa más grande es 0.2349 que se encuentra en la marca Harver's. 
+
+Este gráfico muestra las probabilidades de ocurrencia en cada celda
+de acuerdo a las categorias.
+
+* Creando los perfiles columna
+
+```{r, message=FALSE}
+
+dtGrupo1.col = t(dtGrupo1)/colSums(dtGrupo1)
+
+mass.col = rowMeans(t(dtGrupo1.col))
+
+
+Perfil_col=rbind(dtGrupo1.col,mass.col)
+Perfil_col
+```
+***
+
+### **3. Prueba de Independencia **
+
+
+Para interpretar el análisis de correspondencia, el primer paso es evaluar si existe una dependencia significativa entre las filas y las columnas.
+
+Hipótesis
+
+H0: Asume que no existe asociación entre la marca y la FAMILIARIDAD
+H1: Asume que existe asociación entre la marca y la FAMILIARIDAD
+
+```{r, message=FALSE}
+chisq = chisq.test(dtGrupo1)
+chisq
+```
+
+Debido a que el valor de p-value < 2.2e-16 es menor que el 0.05 (α), la decisión es rechazar la hipótesis nula. Entonces, con base en la prueba de Chi-Cuadrado, se puede concluir que existe asociación entre la marca y la FAMILIARIDAD con el nivel de significancia del 0.05.
+
+
+***
+
+### **4. Análisis de correspondencia **
+
+
+El análisis de correspondencia es un análisis multivariado que utiliza el concepto de análisis de componentes principales. Para buscar la varianza, es necesario calcular el valor propio. 
+
+    * Análisis de correspondencia
+```{r, message=FALSE}
+
+res.ca = CA(dtGrupo1, graph = TRUE)
+print(res.ca)
+```
+
+    * Autovalores
+
+```{r, message=FALSE}
+#library(factoextra)
+eig.val = get_eigenvalue(res.ca)
+eig.val
+
+```
+
+    * Gráfico de sedimentación
+
+```{r, message=FALSE}
+
+fviz_screeplot(res.ca, addlabels = TRUE, ylim = c(0, 50))
+
+```
+
+    * Representación
+    
+    
+```{r, message=FALSE}
+
+fviz_screeplot(res.ca) +
+ geom_hline(yintercept=33.33, linetype=2, color="red")
+
+fviz_ca_row(res.ca, col.row = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE)
+
+fviz_ca_col(res.ca, col.col = "cos2", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)
+
+# Cos2 de filas en Dim.1 y Dim.2
+fviz_cos2(res.ca, choice = "row", axes = 1:2)
+
+# Cos2 de columnas en Dim.1 y Dim.2
+
+fviz_cos2(res.ca, choice = "col", axes = 1:2)
+
+# Contribuciones de filas en la Dim.1
+fviz_contrib(res.ca, choice = "row", axes = 1, top = 10)
+
+# Contribuciones de columnas en la Dim.1
+fviz_contrib(res.ca, choice = "col", axes = 1, top = 10)
+
+# Contribuciones de filas en la Dim.2
+fviz_contrib(res.ca, choice = "row", axes = 2, top = 10)
+
+# Contribuciones de columnas en la Dim.2
+fviz_contrib(res.ca, choice = "col", axes = 2, top = 10)
+
+# Contribución total en Dim.1 y Dim.2
+fviz_contrib(res.ca, choice = "row", axes = 1:2, top = 10)
+
+# Contribución total en Dim.1 y Dim.2
+fviz_contrib(res.ca, choice = "col", axes = 1:2, top = 10)
+
+
+```
+
+    * Test de Malinvaud
+    
+Evalúa la importancia de las dimensiones de CA. La función devuelve tanto una tabla en la consola R como un gráfico. El primero enumera algunos valores, entre los que destaca el significado de cada dimensión de CA. El gráfico es un diagrama de dispersión de dimensiones frente al valor p. Las dimensiones cuyo valor p está por debajo del umbral de 0.05 (mostradas en ROJO) son significativas.    
+
+```{r, message=FALSE, echo=FALSE}
+malinvaud <- function(data) {
+  grandtotal <- sum(data)
+  nrows <- nrow(data)
+  ncols <- ncol(data)
+  numb.dim.cols<-ncol(data)-1
+  numb.dim.rows<-nrow(data)-1
+  a <- min(numb.dim.cols, numb.dim.rows) #dimensionality of the table
+  labs<-c(1:a) #set the number that will be used as x-axis' labels on the scatterplots
+  res.ca<-CA(data, ncp=a, graph=FALSE)
+  
+  malinv.test.rows <- a
+  malinv.test.cols <- 6
+  malinvt.output <-matrix(ncol= malinv.test.cols, nrow=malinv.test.rows)
+  colnames(malinvt.output) <- c("K", "Dimension", "Eigen value", "Chi-square", "df", "p value")
+  
+  malinvt.output[,1] <- c(0:(a-1))
+  malinvt.output[,2] <- c(1:a)
+  
+  for(i in 1:malinv.test.rows){
+    k <- -1+i
+    malinvt.output[i,3] <- res.ca$eig[i,1]
+    malinvt.output[i,5] <- (nrows-k-1)*(ncols-k-1)
+  }
+  
+  malinvt.output[,4] <- rev(cumsum(rev(malinvt.output[,3])))*grandtotal
+  malinvt.output[,6] <- round(pchisq(malinvt.output[,4], malinvt.output[,5], lower.tail=FALSE), digits=6)
+  
+  print(malinvt.output)
+  
+  dotchart2(malinvt.output[,6], labels=malinvt.output[,2], sort=FALSE,lty=2, xlim=c(min(malinvt.output[,6]), max(malinvt.output[,6])), xlab=paste("p value after Malinvaud's test"), ylab="Dimensions")
+  abline(v=0.05, lty=2, col="RED")
+}
+```
+```{r, message=FALSE}
+
+malinvaud(dtGrupo1)
+```
+
+    * Test basados en permutación
+    
+
+```{r, message=FALSE, echo=FALSE}
+sig.tot.inertia.perm <- function(data) {
+  res<-epCA.inference.battery(data, test.iters=999, graphs=FALSE)
+  obs.inrt<-round(sum(res$Fixed.Data$ExPosition.Data$eigs),4)
+  thresh<-round(quantile(res$Inference.Data$omni$inertia.perm, c(0.95)),5)
+  
+  #plot the distribution of the permuted total inertia
+  d <- density(res$Inference.Data$omni$inertia.perm)
+  plot(d, main="Kernel density of CA permuted total inertia", sub=paste("solid line: obs. inertia (",obs.inrt,"); dashed line: 95th percentile of the permut. distrib. (=alpha 0.05 threshold)"))
+  polygon(d, col="red", border="blue")
+  
+  ##add reference lines
+  #add reference line indicating the observed total inertia
+  abline(v=obs.inrt)
+  #add reference line indicating the 95 percentile of the permuted total inertia
+  abline(v=thresh, lty=2, col="blue")
+  
+  #report some data on the R console
+  print(paste("observed total inertia:", obs.inrt))
+  print(paste("95th percentile of the permuted total inertia:", thresh))
+  print("if the observed inertia is larger than the 95th percentile, the observed inertia is significant at alpha 0.05")
+}
+
+
+sig.dim.perm <- function(data,x,y) {
+  res<-epCA.inference.battery(data, test.iters=999, graphs=FALSE)
+  
+  #count the number of permuted eigenvalues of the first dimensions that are greater than the observed eigenvalue of the same dimension
+  first.dim.ratio<-length(which(res$Inference.Data$components$eigs.perm[,x] > res$Inference.Data$components$eigs[x])) 
+  
+  #compute the p value of the first selected dimension
+  pvalue.first.dim<-round(first.dim.ratio/1000, 5) 
+  
+  #the same applies for the second selected dimension
+  second.dim.ratio<-length(which(res$Inference.Data$components$eigs.perm[,y] > res$Inference.Data$components$eigs[y])) 
+  pvalue.second.dim<-round(second.dim.ratio/1000,5)
+  
+  plot(res$Inference.Data$components$eigs.perm[,x], res$Inference.Data$components$eigs.perm[,y], main=" Scatterplot of permuted Dimensions' inertia", sub="solid line: obs. inertia; dashed line: 95 percentile of the permuted distrib. (=alpha 0.05 threshold)", xlab=paste("inertia of permuted", x,"Dim (p=", pvalue.first.dim, ")"), ylab=paste("inertia of permuted", y,"Dim (p=", pvalue.second.dim, ")"))
+  
+  ##add reference lines
+  #reference lines indicating the 95 percentile of the permuted distribution of the first and second dimensions' inertia
+  abline(v=quantile(res$Inference.Data$components$eigs.perm[,x], c(0.95)), lty=2, col="blue")
+  abline(h=quantile(res$Inference.Data$components$eigs.perm[,y], c(0.95)), lty=2, col="blue")
+  
+  #reference lines indicating the observed inertia of the first two dimensions
+  abline(v=res$Inference.Data$components$eigs[x])
+  abline(h=res$Inference.Data$components$eigs[y])
+  
+  #report some data on the R console
+  print(paste("p value of dim", x,"=",pvalue.first.dim))
+  print(paste("p value of dim", y,"=",pvalue.second.dim))
+}
+```
+```{r, message=FALSE}
+
+sig.tot.inertia.perm(dtGrupo1)
+
+```
+
+Este gráfico, devuelve la curva de frecuencia de la inercia total permutada (basada en 999 tablas simuladas). La inercia total observada (0,1337) y otra el percentil 95 (0.03457). Permiten evaluar visualmente la importancia de la inercia total observada. En este caso, la prueba arroja un resultado significativo, lo que indica que la hipótesis de independencia entre marca y FAMILIARIDAD puede rechazarse. Este comando se puede utilizar en lugar de la prueba tradicional de chi-cuadrado. 
+
+```{r, message=FALSE}
+
+sig.dim.perm(dtGrupo1,1,2)
+
+
+```
+Se implementa una prueba basada en permutación (que se usa en 999 tablas simuladas) para probar la importancia de cualquier par de dimensiones. Se devuelve el diagrama de dispersión, donde las inercias permutadas de dimensión 1 y 2 se grafican entre sí. Nuevamente, las líneas de referencia que representan la inercia de las dimensiones observadas y permutadas permiten evaluar visualmente la importancia. Este último también se indica en las etiquetas de los ejes. En el gráfico, ambas dimensiones son significativas con un alfa de 0.05, y las dimensiones 1 y 2 tienen un valor p=0.
+
+
+```{r, message=FALSE}
+
+#Imputando valores
+frecuencias <- data.frame(table(Base1$famil))
+moda <- frecuencias[which.max(frecuencias$Freq),1]
+
+Base1$famil<-replace(Base1$famil,is.na(Base1$famil),moda)
+
+frecuencias <- data.frame(table(Base1$uniqu))
+moda <- frecuencias[which.max(frecuencias$Freq),1]
+
+Base1$uniqu<-replace(Base1$uniqu,is.na(Base1$uniqu),moda)
+
+frecuencias <- data.frame(table(Base1$relev))
+moda <- frecuencias[which.max(frecuencias$Freq),1]
+
+Base1$relev<-replace(Base1$relev,is.na(Base1$relev),moda)
+
+frecuencias <- data.frame(table(Base1$loyal))
+moda <- frecuencias[which.max(frecuencias$Freq),1]
+
+
+Base1$loyal<-replace(Base1$loyal,is.na(Base1$loyal),moda)
+
+frecuencias <- data.frame(table(Base1$popul))
+moda <- frecuencias[which.max(frecuencias$Freq),1]
+
+Base1$popul<-replace(Base1$popul,is.na(Base1$popul),moda)
+
+# seleccionando columnas
+
+newBase1 = Base1[, c("famil", "uniqu", "relev", "loyal","popul","brand")]
+
+
+# Número de categorias por variable
+
+
+cats = apply(newBase1, 2, function(x) nlevels(as.factor(x)))
+cats
+
+
+# Aplicando MCA
+
+mca1 = MCA(newBase1, graph = FALSE)
+
+# Tabla de autovalores
+mca1$eig
+
+# Coordenadas por columna
+head(mca1$var$coord)
+
+# Coordenadas por fila
+head(mca1$ind$coord)
+
+
+# data frames para ggplot
+mca1_vars_df = data.frame(mca1$var$coord, Variable = rep(names(cats), cats))
+mca1_obs_df = data.frame(mca1$ind$coord)
+
+# Gráficos para las categorias de las variables
+ggplot(data = mca1_vars_df, aes(x = Dim.1, y = Dim.2, label = rownames(mca1_vars_df))) + 
+  geom_hline(yintercept = 0, colour = "gray70") + 
+  geom_vline(xintercept = 0, colour = "gray70") + 
+  geom_text(aes(colour = Variable)) + ggtitle("Gráfico de Correspondencias múltiples")
+
+
+# Gráfico MCA de observaciones y categorías
+
+ggplot(data = mca1_obs_df, aes(x = Dim.1, y = Dim.2)) + 
+  geom_hline(yintercept = 0, colour = "gray70") + 
+  geom_vline(xintercept = 0, colour = "gray70") + 
+  geom_point(colour = "gray50", alpha = 0.7) + 
+  geom_density2d(colour = "gray80") + 
+  geom_text(data = mca1_vars_df, aes(x = Dim.1, y = Dim.2, label = rownames(mca1_vars_df), colour = Variable)) + 
+  ggtitle("Gráfico de Correspondencias Múltiple") + 
+  scale_colour_discrete(name = "Variable")
+
+
+# Biplot
+plot(mca1)
+
+```
